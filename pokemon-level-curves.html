@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curvas de nivel — Pokémon UPR-FVX</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --bg2: #f4f3ef;
+  --bg3: #eceae4;
+  --text: #1a1a18;
+  --text2: #6b6a65;
+  --text3: #a09f9a;
+  --border: rgba(0,0,0,0.12);
+  --border2: rgba(0,0,0,0.22);
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1c;
+    --bg2: #2a2a28;
+    --bg3: #333331;
+    --text: #f0efeb;
+    --text2: #a09f9a;
+    --text3: #6b6a65;
+    --border: rgba(255,255,255,0.10);
+    --border2: rgba(255,255,255,0.20);
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 2rem;
+}
+
+header {
+  padding: 1.5rem 1rem 0;
+  max-width: 760px;
+  margin: 0 auto;
+}
+header h1 {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+header p {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.tabs-wrap {
+  max-width: 760px;
+  margin: 1.25rem auto 0;
+  padding: 0 1rem;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tab {
+  padding: 6px 14px;
+  font-size: 13px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text2);
+  transition: all .15s;
+  font-family: inherit;
+}
+.tab:hover { background: var(--bg2); color: var(--text); }
+.tab.active { background: var(--text); color: var(--bg); border-color: transparent; }
+
+.panel { display: none; max-width: 760px; margin: 0 auto; padding: 1rem; }
+.panel.active { display: block; }
+
+.legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.fights { display: flex; flex-direction: column; gap: 5px; }
+
+.fight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fight-name {
+  font-size: 12px;
+  color: var(--text2);
+  min-width: 175px;
+  max-width: 175px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fight-name.leader {
+  font-weight: 500;
+  color: var(--text);
+}
+.bar-wrap {
+  flex: 1;
+  background: var(--bg3);
+  border-radius: 3px;
+  height: 16px;
+  overflow: hidden;
+}
+.bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .5s ease;
+}
+.bar.route  { background: #888780; }
+.bar.gym    { background: #534AB7; }
+.bar.elite  { background: #0F6E56; }
+.bar.champ  { background: #993C1D; }
+
+.fight-lv {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  min-width: 28px;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .fight-name { min-width: 140px; max-width: 140px; font-size: 11px; }
+  .fight-lv { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Curvas de nivel — Pokémon UPR-FVX</h1>
+  <p>Niveles de combates principales por juego. Modificados para una progresión 1-100.</p>
+</header>
+
+<div class="tabs-wrap" id="tabs"></div>
+<div id="panels"></div>
+
+<script>
+const GAMES = [
+  {
+    id:"rf", name:"Rojo Fuego",
+    fights:[
+      {n:"Rutas 1-2",            lv:12,  t:"route"},
+      {n:"Brock",                lv:14,  t:"gym"},
+      {n:"Rutas 3-4 / Luna",     lv:20,  t:"route"},
+      {n:"Misty",                lv:27,  t:"gym"},
+      {n:"Rutas 5-6 / Anne",     lv:33,  t:"route"},
+      {n:"Surge",                lv:34,  t:"gym"},
+      {n:"Rutas 9-11 / Tunel",   lv:43,  t:"route"},
+      {n:"Erika",                lv:44,  t:"gym"},
+      {n:"Rutas 12-15",          lv:62,  t:"route"},
+      {n:"Ruta 8 / Torre",       lv:55,  t:"route"},
+      {n:"Koga",                 lv:68,  t:"gym"},
+      {n:"Sabrina",              lv:59,  t:"gym"},
+      {n:"Blaine",               lv:75,  t:"gym"},
+      {n:"Giovanni",             lv:80,  t:"gym"},
+      {n:"Mansion / Ruta 21",    lv:78,  t:"route"},
+      {n:"Ruta 23 / VR",         lv:84,  t:"route"},
+      {n:"Lorelei",              lv:85,  t:"elite"},
+      {n:"Bruno",                lv:89,  t:"elite"},
+      {n:"Agatha",               lv:92,  t:"elite"},
+      {n:"Lance",                lv:97,  t:"elite"},
+      {n:"Gary (Campeon)",        lv:100, t:"champ"},
+    ]
+  },
+  {
+    id:"hgss", name:"HeartGold",
+    fights:[
+      {n:"Rutas 29-31",          lv:13,  t:"route"},
+      {n:"Falkner",              lv:14,  t:"gym"},
+      {n:"Rutas 32-33",          lv:22,  t:"route"},
+      {n:"Bugsy",                lv:22,  t:"gym"},
+      {n:"Ruta 34",              lv:27,  t:"route"},
+      {n:"Whitney",              lv:30,  t:"gym"},
+      {n:"Rutas 35-37",          lv:34,  t:"route"},
+      {n:"Morty",                lv:40,  t:"gym"},
+      {n:"Rutas 38-39",          lv:42,  t:"route"},
+      {n:"Chuck",                lv:50,  t:"gym"},
+      {n:"Rutas 40-41",          lv:52,  t:"route"},
+      {n:"Jasmine",              lv:60,  t:"gym"},
+      {n:"Rutas 42-43",          lv:60,  t:"route"},
+      {n:"Pryce",                lv:68,  t:"gym"},
+      {n:"Ruta 44 / Hielo",      lv:68,  t:"route"},
+      {n:"Clair",                lv:76,  t:"gym"},
+      {n:"Rutas 45-46",          lv:78,  t:"route"},
+      {n:"Rutas 26-27 / VR",     lv:84,  t:"route"},
+      {n:"Will",                 lv:90,  t:"elite"},
+      {n:"Koga",                 lv:93,  t:"elite"},
+      {n:"Bruno",                lv:96,  t:"elite"},
+      {n:"Karen",                lv:98,  t:"elite"},
+      {n:"Lance",                lv:100, t:"champ"},
+    ]
+  },
+  {
+    id:"pt", name:"Platino",
+    fights:[
+      {n:"Rutas 201-204",        lv:10,  t:"route"},
+      {n:"Roark",                lv:14,  t:"gym"},
+      {n:"R204N / R205 Sur",     lv:17,  t:"route"},
+      {n:"R205 / Cicl / R207",   lv:32,  t:"route"},
+      {n:"Gardenia",             lv:36,  t:"gym"},
+      {n:"R208 / R209 / R210",   lv:32,  t:"route"},
+      {n:"Fantina",              lv:40,  t:"gym"},
+      {n:"Maylene",              lv:44,  t:"gym"},
+      {n:"Wake",                 lv:54,  t:"gym"},
+      {n:"Byron",                lv:64,  t:"gym"},
+      {n:"R216 / R217",          lv:70,  t:"route"},
+      {n:"Candice",              lv:74,  t:"gym"},
+      {n:"Volkner",              lv:82,  t:"gym"},
+      {n:"R222 / VR",            lv:76,  t:"route"},
+      {n:"Aaron",                lv:90,  t:"elite"},
+      {n:"Bertha",               lv:93,  t:"elite"},
+      {n:"Flint",                lv:96,  t:"elite"},
+      {n:"Lucian",               lv:98,  t:"elite"},
+      {n:"Cynthia",              lv:100, t:"champ"},
+    ]
+  },
+  {
+    id:"bw", name:"Blanco / Negro",
+    fights:[
+      {n:"Ruta 2",               lv:10,  t:"route"},
+      {n:"Ruta 3",               lv:17,  t:"route"},
+      {n:"Cilan / Chili / Cress",lv:21,  t:"gym"},
+      {n:"Gym Nacrene (trainers)",lv:23,  t:"route"},
+      {n:"Lenora",               lv:28,  t:"gym"},
+      {n:"R4 / Desert Resort",   lv:32,  t:"route"},
+      {n:"Burgh",                lv:36,  t:"gym"},
+      {n:"R5 / Pinwheel",        lv:39,  t:"route"},
+      {n:"Elesa",                lv:46,  t:"gym"},
+      {n:"R6 / Chargestone",     lv:52,  t:"route"},
+      {n:"Clay",                 lv:56,  t:"gym"},
+      {n:"R7 / Celestial",       lv:62,  t:"route"},
+      {n:"Skyla",                lv:66,  t:"gym"},
+      {n:"Twist Mountain",       lv:62,  t:"route"},
+      {n:"Brycen",               lv:74,  t:"gym"},
+      {n:"R9 / Opelucid",        lv:77,  t:"route"},
+      {n:"Drayden",              lv:82,  t:"gym"},
+      {n:"R10 / VR",             lv:78,  t:"route"},
+      {n:"Shauntal",             lv:90,  t:"elite"},
+      {n:"Marshal",              lv:93,  t:"elite"},
+      {n:"Grimsley",             lv:96,  t:"elite"},
+      {n:"Caitlin",              lv:98,  t:"elite"},
+      {n:"Alder",                lv:100, t:"champ"},
+    ]
+  },
+  {
+    id:"oras", name:"Zafiro Alfa",
+    fights:[
+      {n:"R101-104 / Bosque",    lv:10,  t:"route"},
+      {n:"R104N / R116",         lv:10,  t:"route"},
+      {n:"Roxanne",              lv:20,  t:"gym"},
+      {n:"Granite / R109",       lv:15,  t:"route"},
+      {n:"Brawly",               lv:28,  t:"gym"},
+      {n:"R110",                 lv:23,  t:"route"},
+      {n:"Wattson",              lv:32,  t:"gym"},
+      {n:"R111 / R112 / R113",   lv:28,  t:"route"},
+      {n:"Flannery",             lv:44,  t:"gym"},
+      {n:"Norman",               lv:52,  t:"gym"},
+      {n:"R115 / R117 / R118",   lv:46,  t:"route"},
+      {n:"Winona",               lv:62,  t:"gym"},
+      {n:"R119 / R120 / R121",   lv:63,  t:"route"},
+      {n:"Tate & Liza",          lv:72,  t:"gym"},
+      {n:"Wallace",              lv:80,  t:"gym"},
+      {n:"R124-127",             lv:76,  t:"route"},
+      {n:"VR / R128",            lv:84,  t:"route"},
+      {n:"Sidney",               lv:90,  t:"elite"},
+      {n:"Phoebe",               lv:93,  t:"elite"},
+      {n:"Glacia",               lv:96,  t:"elite"},
+      {n:"Drake",                lv:98,  t:"elite"},
+      {n:"Steven",               lv:100, t:"champ"},
+    ]
+  },
+  {
+    id:"xy", name:"X / Y",
+    fights:[
+      {n:"R2 / Santalune",       lv:12,  t:"route"},
+      {n:"R3 / R4",              lv:12,  t:"route"},
+      {n:"Viola",                lv:16,  t:"gym"},
+      {n:"R5 / R6",              lv:24,  t:"route"},
+      {n:"Grant",                lv:28,  t:"gym"},
+      {n:"R7 / R8 / Cueva",      lv:36,  t:"route"},
+      {n:"Korrina",              lv:40,  t:"gym"},
+      {n:"R9 / R10 / R12-13",    lv:54,  t:"route"},
+      {n:"Ramos",                lv:58,  t:"gym"},
+      {n:"R14 / R15",            lv:54,  t:"route"},
+      {n:"Clemont",              lv:62,  t:"gym"},
+      {n:"R16 / R17",            lv:54,  t:"route"},
+      {n:"Valerie",              lv:68,  t:"gym"},
+      {n:"R18 / Frost Cave",     lv:72,  t:"route"},
+      {n:"Olympia",              lv:76,  t:"gym"},
+      {n:"R19 / R20",            lv:78,  t:"route"},
+      {n:"Wulfric",              lv:82,  t:"gym"},
+      {n:"R21 / VR",             lv:78,  t:"route"},
+      {n:"Malva",                lv:90,  t:"elite"},
+      {n:"Siebold",              lv:93,  t:"elite"},
+      {n:"Wikstrom",             lv:96,  t:"elite"},
+      {n:"Drasna",               lv:98,  t:"elite"},
+      {n:"Diantha",              lv:100, t:"champ"},
+    ]
+  },
+  {
+    id:"usum", name:"Ultra Luna",
+    fights:[
+      {n:"Ilima — Hau'oli",      lv:17,  t:"route"},
+      {n:"Raticate gigante",     lv:19,  t:"route"},
+      {n:"Hala (Grand Trial)",   lv:27,  t:"gym"},
+      {n:"Araquanid gigante",    lv:38,  t:"route"},
+      {n:"Salazzle gigante",     lv:41,  t:"route"},
+      {n:"Lurantis gigante",     lv:46,  t:"route"},
+      {n:"Mayla (Grand Trial)",  lv:54,  t:"gym"},
+      {n:"Togedemaru gigante",   lv:57,  t:"route"},
+      {n:"Mimikyu gigante",      lv:68,  t:"route"},
+      {n:"Kommo-o gigante",      lv:79,  t:"route"},
+      {n:"Capitanes (Mina)",     lv:74,  t:"route"},
+      {n:"Nanu (Grand Trial)",   lv:76,  t:"gym"},
+      {n:"Hapu (Grand Trial)",   lv:78,  t:"gym"},
+      {n:"Ribombee gigante",     lv:79,  t:"route"},
+      {n:"Lario / Molayne",      lv:88,  t:"elite"},
+      {n:"Mayla / Olivia",       lv:91,  t:"elite"},
+      {n:"Zarala / Acerola",     lv:93,  t:"elite"},
+      {n:"Kahili",               lv:95,  t:"elite"},
+      {n:"Kukui (pre-campeon)",  lv:97,  t:"elite"},
+      {n:"Tilo / Hau",           lv:100, t:"champ"},
+    ]
+  },
+];
+
+const COLORS = { route:"#888780", gym:"#534AB7", elite:"#0F6E56", champ:"#993C1D" };
+const LABELS = { route:"Entrenadores ruta", gym:"Lider / Kahuna / Totem", elite:"Alto Mando", champ:"Campeon" };
+
+const tabsEl   = document.getElementById('tabs');
+const panelsEl = document.getElementById('panels');
+
+GAMES.forEach((g, gi) => {
+  const tab = document.createElement('button');
+  tab.className = 'tab' + (gi===0 ? ' active' : '');
+  tab.textContent = g.name;
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + g.id).classList.add('active');
+  };
+  tabsEl.appendChild(tab);
+
+  const panel = document.createElement('div');
+  panel.className = 'panel' + (gi===0 ? ' active' : '');
+  panel.id = 'panel-' + g.id;
+
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  Object.entries(LABELS).forEach(([k, v]) => {
+    legend.innerHTML += `<span class="leg-item"><span class="leg-dot" style="background:${COLORS[k]}"></span>${v}</span>`;
+  });
+  panel.appendChild(legend);
+
+  const fights = document.createElement('div');
+  fights.className = 'fights';
+  g.fights.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'fight';
+    const isLeader = f.t !== 'route';
+    row.innerHTML = `
+      <span class="fight-name${isLeader ? ' leader' : ''}" title="${f.n}">${f.n}</span>
+      <div class="bar-wrap" role="img" aria-label="${f.n} nivel ${f.lv}">
+        <div class="bar ${f.t}" style="width:${f.lv}%"></div>
+      </div>
+      <span class="fight-lv">${f.lv}</span>
+    `;
+    fights.appendChild(row);
+  });
+  panel.appendChild(fights);
+  panelsEl.appendChild(panel);
+});
+</script>
+</body>
+</html>
